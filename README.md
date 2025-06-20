@@ -31,7 +31,7 @@ Follow these instructions to get the load balancer and its test backend servers 
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/your-username/go-load-balancer.git](https://github.com/your-username/go-load-balancer.git)
+    git clone https://github.com/prodXCE/go-load-balancer.git
     cd go-load-balancer
     ```
 
