@@ -5,19 +5,48 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"sync"
 )
 
 type Server struct {
 	URL *url.URL
 	Alive bool
+	mux   sync.RWMutex
+}
+
+func (s *Server) SetAlive(alive bool) {
+	s.mux.Lock()
+	s.Alive = alive
+	s.mux.Unlock()
+}
+
+func (s *Server) IsAlive() bool {
+	s.mux.RLock()
+	defer s.mux.RUnlock()
+	return s.Alive
 }
 
 type ServerPool struct {
 	servers []*Server
+	current uint64
+	mux     sync.Mutex
 }
 
 func (sp *ServerPool) AddServer(server *Server) {
 	sp.servers = append(sp.servers, server)
+}
+
+func (sp *ServerPool) GetNextPeer() *Server {
+	sp.mux.Lock()
+	defer sp.mux.Unlock()
+	for i := 0; i < len(sp.servers); i++ {
+		sp.current = (sp.current + 1) % uint64(len(sp.servers))
+		if sp.servers[sp.current].IsAlive() {
+			return sp.servers[sp.current]
+		}
+	}
+
+	return nil
 }
 
 var serverPool ServerPool
@@ -69,5 +98,12 @@ func main() {
 func handler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Recieved request from %s", r.RemoteAddr)
 
+	peer := serverPool.GetNextPeer()
+	if peer == nil {
+		http.Error(w, "Service not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	log.Printf("Forwarding request to %s", peer.URL)
 	fmt.Fprintf(w, "Hello!, This is the load balancer skeleton")
 }
