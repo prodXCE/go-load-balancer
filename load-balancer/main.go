@@ -32,6 +32,7 @@ func (s *Server) IsAlive() bool {
 	return s.Alive
 }
 
+// this basically needed
 // ServerPool holds the information about our backends.
 type ServerPool struct {
 	servers []*Server
